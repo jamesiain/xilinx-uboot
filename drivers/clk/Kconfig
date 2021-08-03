@@ -110,6 +110,14 @@ config CLK_VEXPRESS_OSC
 	  This clock driver adds support for clock generators present on
 	  Arm Versatile Express platforms.
 
+config CLK_GECKO
+	bool "Enable clock driver support for Allen-Vanguard Gecko"
+	depends on CLK && ARCH_ZYNQ
+	default y
+	help
+	  This clock driver adds support for the DAC System Clock on the
+	  Allen-Vanguard Gecko platform.
+
 config CLK_ZYNQ
 	bool "Enable clock driver support for Zynq"
 	depends on CLK && ARCH_ZYNQ

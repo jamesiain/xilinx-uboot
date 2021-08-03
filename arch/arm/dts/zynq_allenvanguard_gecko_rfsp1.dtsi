@@ -1,18 +1,17 @@
-
 / {
-	usb_phy0: phy0 {
-		compatible = "ulpi-phy";
-		#phy-cells = <0>;
-		reg = <0xe0002000 0x1000>;
-		view-port = <0x0170>;
-		drv-vbus;
-	};
+    usb_phy0: phy0 {
+        compatible = "ulpi-phy";
+        #phy-cells = <0>;
+        reg = <0xe0002000 0x1000>;
+        view-port = <0x0170>;
+        drv-vbus;
+    };
 };
 
 &usb0 {
-	status = "okay";
-	dr_mode = "host";
-	usb-phy = <&usb_phy0>;
+    status = "okay";
+    dr_mode = "host";
+    usb-phy = <&usb_phy0>;
 };
 
 &sdhci0 {
@@ -22,9 +21,84 @@
 };
 
 &amba {
-	ref24: ref24M {
-		compatible = "fixed-clock";
-		#clock-cells = <0>;
-		clock-frequency = <24000000>;
-	};
+    ref24: ref24M {
+        compatible = "fixed-clock";
+        #clock-cells = <0>;
+        clock-frequency = <24000000>;
+    };
+};
+
+&pinctrl0 {
+    pinctrl_i2c0_default: i2c0-default {
+        mux {
+            groups = "i2c0_10_grp";
+            function = "i2c0";
+        };
+
+        conf {
+            groups = "i2c0_10_grp";
+            bias-pull-up;
+            slew-rate = <0>;
+            io-standard = <1>;
+        };
+    };
+
+    pinctrl_i2c0_gpio: i2c0-gpio {
+        mux {
+            groups = "gpio0_50_grp", "gpio0_51_grp";
+            function = "gpio0";
+        };
+
+        conf {
+            groups = "gpio0_50_grp", "gpio0_51_grp";
+            slew-rate = <0>;
+            io-standard = <1>;
+        };
+    };
+};
+
+#include <dt-bindings/gpio/gpio.h>
+
+&i2c0 {
+    status = "okay";
+    clock-frequency = <400000>;
+    pinctrl-names = "default", "gpio";
+    pinctrl-0 = <&pinctrl_i2c0_default>;
+    pinctrl-1 = <&pinctrl_i2c0_gpio>;
+    scl-gpios = <&gpio0 50 0>;
+    sda-gpios = <&gpio0 51 0>;
+
+    pca9555_0: pca9555@20 {
+        status = "okay";
+        compatible = "nxp,pca9555";
+        gpio-controller;
+        #gpio-cells = <2>;
+        reg = <0x20>;
+        gpio-line-names =
+            "DDS_PROFILE1", "DDS_PROFILE2", "DDS_CLK_CS", "DDS_PLL_LD",
+            "DAC_TX_ENABLE", "CLK_GEN_SYNC", "DAC_RESETB", "EEPROM_CS",
+            "CLK_GEN_CS", "CLK_GEN_RST", "CLK_GEN_LD1", "CLK_GEN_LD2",
+            "DAC_CS", "RF_ADC_CS", "DDS_PROFILE0", "DAC_ALARM";
+
+        clk_gen_cs {
+            gpio-hog;
+            gpios = <8 GPIO_ACTIVE_HIGH>;
+            output-low;
+            line-name = "clk_gen_cs";
+        };
+    };
+};
+
+&spi1 {
+    status = "okay";
+    num-cs = <1>;
+
+    dac_system_clock: clock-generator{
+        status = "okay";
+        compatible = "lmk,lmk04821";
+
+        clk-gen-cs  = <&pca9555_0  8 GPIO_ACTIVE_HIGH>;
+        clk-gen-ld1 = <&pca9555_0 10 GPIO_ACTIVE_HIGH>;
+        clk-gen-ld2 = <&pca9555_0 11 GPIO_ACTIVE_HIGH>;
+    };
 };

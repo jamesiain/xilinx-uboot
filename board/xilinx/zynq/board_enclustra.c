@@ -11,6 +11,7 @@
 #include <asm/arch/hardware.h>
 #include <asm/arch/sys_proto.h>
 #include <asm/io.h>
+#include <asm-generic/gpio.h>
 #include <spi.h>
 #include <spi_flash.h>
 #include <enclustra_qspi.h>
@@ -79,6 +80,18 @@ static char *zx_get_idcode_name(void)
 }
 #endif
 
+static void gecko_clock_init(void)
+{
+    struct udevice *lmk04821 = NULL;
+
+    printf("Trial 009:\n");
+
+    if (uclass_get_device_by_name(UCLASS_CLK, "clock-generator", &lmk04821)) {
+        printf("Could not get CLK device: LMK04821 Clock Generator\n");
+        return;
+    }
+}
+
 int enclustra_board(void)
 {
 #if defined(CONFIG_ZYNQ_QSPI)
@@ -111,6 +124,8 @@ int enclustra_board(void)
 		setup_qspi_args(flash_size, zx_get_idcode_name());
 	}
 #endif
+
+    gecko_clock_init();
 	return 0;
 }
 
