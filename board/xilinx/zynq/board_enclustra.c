@@ -84,7 +84,7 @@ static void gecko_clock_init(void)
 {
     struct udevice *lmk04821 = NULL;
 
-    printf("Trial 009:\n");
+    printf("Trial 014:\n");
 
     if (uclass_get_device_by_name(UCLASS_CLK, "clock-generator", &lmk04821)) {
         printf("Could not get CLK device: LMK04821 Clock Generator\n");
