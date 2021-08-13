@@ -118,6 +118,41 @@ config CLK_GECKO
 	  This clock driver adds support for the DAC System Clock on the
 	  Allen-Vanguard Gecko platform.
 
+config LMK_DEFAULT_BUS
+	int "SPI LMK04821 clock-generator default bus identifier"
+	depends on CLK_GECKO
+	default 0
+	help
+	  The default bus may be provided by the platform
+
+config LMK_DEFAULT_CS
+	int "SPI LMK04821 clock-generator default chip-select"
+	depends on CLK_GECKO
+	default 0
+	help
+	  The default chip select may be provided by the platform
+
+config LMK_DEFAULT_MODE
+	hex "SPI LMK04821 clock-generator default mode (see include/spi.h)"
+	depends on CLK_GECKO
+	default 3
+	help
+	  The default mode may be provided by the platform
+	  Not used for boot with device tree; the SPI driver reads
+	  speed and mode from platdata values computed from
+	  available node.
+
+config LMK_DEFAULT_SPEED
+	int "SPI LMK04821 clock-generator default speed in Hz"
+	depends on CLK_GECKO
+	default 1000000
+	help
+	  The default speed may be provided by the platform
+	  Not used for boot with device tree; the SPI driver reads
+	  speed and mode from platdata values computed from
+	  available node.
+
+
 config CLK_ZYNQ
 	bool "Enable clock driver support for Zynq"
 	depends on CLK && ARCH_ZYNQ

@@ -83,13 +83,19 @@
             "DAC_TX_ENABLE", "CLK_GEN_SYNC", "DAC_RESETB", "EEPROM_CS",
             "CLK_GEN_CS", "CLK_GEN_RST", "CLK_GEN_LD1", "CLK_GEN_LD2",
             "DAC_CS", "RF_ADC_CS", "DDS_PROFILE0", "DAC_ALARM";
+    };
 
-        clk_gen_cs {
-            gpio-hog;
-            gpios = <8 GPIO_ACTIVE_HIGH>;
-            output-low;
-            line-name = "clk_gen_cs";
-        };
+    pca9555_2: pca9555@22 {
+        status = "okay";
+        compatible = "nxp,pca9555";
+        gpio-controller;
+        #gpio-cells = <2>;
+        reg = <0x22>;
+        gpio-line-names =
+            "RX_PLL1_LD", "RX_PLL2_LD", "RX_PLL3_LD", "RX_PLL4_LD",
+            "RX_PLL1_CS", "RX_PLL2_CS", "RX_PLL3_CS", "RX_PLL4_CS",
+            "TX_PLL1_LD", "TX_PLL2_LD", "TX_PLL3_LD", "TX_PLL4_LD",
+            "TX_PLL1_CS", "TX_PLL2_CS", "TX_PLL3_CS", "TX_PLL4_CS";
     };
 };
 
@@ -97,16 +103,18 @@
     status = "okay";
     #address-cells = <1>;
     #size-cells = <0>;
-    num-cs = <1>;
     is-decoded-cs = <0>;
+    num-cs = <1>;
+    cs-gpios = <&pca9555_0 8 GPIO_ACTIVE_HIGH>;
 
     dac_system_clock: clock-generator@0{
         status = "okay";
         compatible = "lmk,lmk04821";
-        spi-max-frequency = <1000000>;
+        spi-max-frequency = <20000000>;
         reg = <0x00>;
 
         clk-gen-cs  = <&pca9555_0  8 GPIO_ACTIVE_HIGH>;
+        clk-gen-rst = <&pca9555_0  9 GPIO_ACTIVE_HIGH>;
         clk-gen-ld1 = <&pca9555_0 10 GPIO_ACTIVE_HIGH>;
         clk-gen-ld2 = <&pca9555_0 11 GPIO_ACTIVE_HIGH>;
     };

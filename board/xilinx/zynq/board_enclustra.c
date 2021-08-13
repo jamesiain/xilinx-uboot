@@ -82,18 +82,19 @@ static char *zx_get_idcode_name(void)
 
 static void gecko_clock_init(void)
 {
-    struct udevice *lmk04821 = NULL;
+    struct udevice *lmk04821;
 
-    printf("Trial 014:\n");
+    printf("Trial 037: Set maximum SCLK for SPI1:0 (LMK04821) to ~10 MHz\n");
 
-    if (uclass_get_device_by_name(UCLASS_CLK, "clock-generator", &lmk04821)) {
-        printf("Could not get CLK device: LMK04821 Clock Generator\n");
-        return;
+    if (uclass_get_device_by_name(UCLASS_CLK, "clock-generator@0", &lmk04821) < 0) {
+        printf("Failed to find clock-generator@0 node. Check device tree\n");
     }
 }
 
 int enclustra_board(void)
 {
+    gecko_clock_init();
+
 #if defined(CONFIG_ZYNQ_QSPI)
 #define xstr(s) str(s)
 #define str(s) #s
@@ -124,8 +125,6 @@ int enclustra_board(void)
 		setup_qspi_args(flash_size, zx_get_idcode_name());
 	}
 #endif
-
-    gecko_clock_init();
 	return 0;
 }
 

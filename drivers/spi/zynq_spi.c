@@ -14,6 +14,8 @@
 #include <clk.h>
 #include <asm/io.h>
 
+#define debug(...)      printf(__VA_ARGS__)
+
 DECLARE_GLOBAL_DATA_PTR;
 
 /* zynq spi register bit masks ZYNQ_SPI_<REG>_<BIT>_MASK */
