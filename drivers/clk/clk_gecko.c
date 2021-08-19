@@ -44,42 +44,18 @@ static int config_lmk(struct udevice *dev)
         // To configure it to be 125 MHz;  Make lmk_setting[46] = 0x013004
     int const length = sizeof(lmk_setting) / sizeof(uint32_t);
 
-    int              index, claim_err;
-    bool             ld1, ld2;
-    struct gpio_desc clk_gen_cs, clk_gen_ld1, clk_gen_ld2;
-
     struct gecko_clk_priv *priv = dev_get_priv(dev);
-    struct udevice        *bus;
-    struct spi_slave      *slave;
-
-    unsigned int busnum = CONFIG_LMK_DEFAULT_BUS;
-    unsigned int cs     = CONFIG_LMK_DEFAULT_CS;
-    unsigned int max_Hz = CONFIG_LMK_DEFAULT_SPEED;
-    unsigned int mode   = CONFIG_LMK_DEFAULT_MODE;
-    char         name[30];
-    char        *str;
-
-    snprintf(name, sizeof(name), "zynq_spi@%d:%d", busnum, cs);
-    str = strdup(name);
-
-    int ret = spi_get_bus_and_cs(busnum, cs, max_Hz, mode,
-                                 "spi_generic_drv", str,
-                                 &bus, &slave);
-
-    if (ret || !slave) {
-        printf("config_lmk: Failed to setup SPI slave\n");
-        return -1;
-    }
-
-    if (claim_err = spi_claim_bus(slave)) {
-        printf("config_lmk: Failed to claim SPI bus: %i\n", claim_err);
-        spi_free_slave(slave);
-        return -1;
-    }
+    int                    index, claim_err;
+    bool                   ld1, ld2;
+    struct gpio_desc       clk_gen_cs, clk_gen_ld1, clk_gen_ld2;
 
     if (gpio_request_by_name(dev, "clk-gen-cs", 0, &clk_gen_cs, GPIOD_IS_OUT) < 0) {
-        printf("Could not request GPIO by name: clk-gen-cs\n");
-        spi_free_slave(slave);
+        printf("config_lmk: Failed to request GPIO by name: clk-gen-cs\n");
+        return -1;
+    }
+
+    if (claim_err = dm_spi_claim_bus(dev)) {
+        printf("config_lmk: Failed to claim SPI bus: %i\n", claim_err);
         return -1;
     }
 
@@ -97,19 +73,19 @@ static int config_lmk(struct udevice *dev)
 #endif
 
         dm_gpio_set_value(&clk_gen_cs, 0);
-        spi_xfer(slave, 24, dout, NULL, SPI_XFER_ONCE);
+        dm_spi_xfer(dev, 24, dout, NULL, SPI_XFER_ONCE);
         dm_gpio_set_value(&clk_gen_cs, 1);  // latch each write
     }
 
-    spi_release_bus(slave);
+    dm_spi_release_bus(dev);
 
     if (gpio_request_by_name(dev, "clk-gen-ld1", 0, &clk_gen_ld1, GPIOD_IS_IN) < 0) {
-        printf("Could not request GPIO by name: clk-gen-ld1\n");
+        printf("config_lmk: Failed to request GPIO by name: clk-gen-ld1\n");
         return -1;
     }
 
     if (gpio_request_by_name(dev, "clk-gen-ld2", 0, &clk_gen_ld2, GPIOD_IS_IN) < 0) {
-        printf("Could not request GPIO by name: clk-gen-ld2\n");
+        printf("config_lmk: Failed to request GPIO by name: clk-gen-ld2\n");
         return -1;
     }
 

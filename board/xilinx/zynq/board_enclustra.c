@@ -84,8 +84,6 @@ static void gecko_clock_init(void)
 {
     struct udevice *lmk04821;
 
-    printf("Trial 037: Set maximum SCLK for SPI1:0 (LMK04821) to ~10 MHz\n");
-
     if (uclass_get_device_by_name(UCLASS_CLK, "clock-generator@0", &lmk04821) < 0) {
         printf("Failed to find clock-generator@0 node. Check device tree\n");
     }

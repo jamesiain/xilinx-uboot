@@ -110,7 +110,9 @@
     dac_system_clock: clock-generator@0{
         status = "okay";
         compatible = "lmk,lmk04821";
-        spi-max-frequency = <20000000>;
+        spi-max-frequency = <500000>;
+        spi-cpol;
+        spi-cpha;
         reg = <0x00>;
 
         clk-gen-cs  = <&pca9555_0  8 GPIO_ACTIVE_HIGH>;

@@ -323,6 +323,8 @@ static int zynq_spi_set_speed(struct udevice *bus, uint speed)
 	writel(confr, &regs->cr);
 	priv->freq = speed;
 
+    debug("zynq_spi_set_speed: plat->frequency=%d, plat->speed_hz=%d, baud_rate_val=%d\n", plat->frequency, plat->speed_hz, baud_rate_val);
+
 	debug("zynq_spi_set_speed: regs=%p, speed=%d\n",
 	      priv->regs, priv->freq);
 
