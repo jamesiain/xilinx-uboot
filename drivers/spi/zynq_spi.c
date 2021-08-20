@@ -53,12 +53,12 @@ struct zynq_spi_regs {
 	u32 rxdr;	/* 0x20 */
 };
 
-
 /* zynq spi platform data */
 struct zynq_spi_platdata {
 	struct zynq_spi_regs *regs;
-	u32 frequency;		/* input frequency */
-	u32 speed_hz;
+	u32 ref_clk;
+	u32 max_hz;
+	u32 requested_speed_hz;
 	uint deactivate_delay_us;	/* Delay to wait after deactivate */
 	uint activate_delay_us;		/* Delay to wait after activate */
 };
@@ -70,7 +70,7 @@ struct zynq_spi_priv {
 	u8 mode;
 	ulong last_transaction_us;	/* Time of last transaction end */
 	u8 fifo_depth;
-	u32 freq;		/* required frequency */
+	u32 actual_speed_hz;
 };
 
 static int zynq_spi_ofdata_to_platdata(struct udevice *bus)
@@ -114,9 +114,6 @@ static void zynq_spi_init_hw(struct zynq_spi_priv *priv)
 		ZYNQ_SPI_CR_MSTREN_MASK;
 	confr &= ~ZYNQ_SPI_CR_MSA_MASK;
 	writel(confr, &regs->cr);
-
-	/* Enable SPI */
-	writel(ZYNQ_SPI_ENR_SPI_EN_MASK, &regs->enr);
 }
 
 static int zynq_spi_probe(struct udevice *bus)
@@ -151,10 +148,11 @@ static int zynq_spi_probe(struct udevice *bus)
 	/* init the zynq spi hw */
 	zynq_spi_init_hw(priv);
 
-	plat->frequency = clock;
-	plat->speed_hz = plat->frequency / 2;
+	plat->ref_clk = clock;
+	plat->max_hz = plat->ref_clk / 4;
+	plat->requested_speed_hz = 0;
 
-	debug("%s: max-frequency=%d\n", __func__, plat->speed_hz);
+	debug("%s: max-frequency=%d\n", __func__, plat->max_hz);
 
 	return 0;
 }
@@ -294,39 +292,40 @@ static int zynq_spi_xfer(struct udevice *dev, unsigned int bitlen,
 	return 0;
 }
 
-static int zynq_spi_set_speed(struct udevice *bus, uint speed)
+static int zynq_spi_set_speed(struct udevice *bus, unsigned int speed_hz)
 {
 	struct zynq_spi_platdata *plat = bus->platdata;
 	struct zynq_spi_priv *priv = dev_get_priv(bus);
 	struct zynq_spi_regs *regs = priv->regs;
 	uint32_t confr;
-	u8 baud_rate_val = 0;
 
-	if (speed > plat->frequency)
-		speed = plat->frequency;
+	if (speed_hz > plat->max_hz) {
+		speed_hz = plat->max_hz;
+	}
+
+	debug("zynq_spi_set_speed: ref_clk=%u, requested_speed_hz=%u\n", plat->ref_clk, speed_hz);
+
+	confr = readl(&regs->cr);
 
 	/* Set the clock frequency */
-	confr = readl(&regs->cr);
-	if (speed == 0) {
-		/* Set baudrate x8, if the freq is 0 */
-		baud_rate_val = 0x2;
-	} else if (plat->speed_hz != speed) {
+	if (plat->requested_speed_hz != speed_hz) {
+	    u8 baud_rate_val = 1;  /* first valid value is 1 */
+
 		while ((baud_rate_val < ZYNQ_SPI_CR_BAUD_MAX) &&
-				((plat->frequency /
-				(2 << baud_rate_val)) > speed))
+				((plat->ref_clk / (2 << baud_rate_val)) > speed_hz)) {
 			baud_rate_val++;
-		plat->speed_hz = speed / (2 << baud_rate_val);
+        }
+
+		confr &= ~ZYNQ_SPI_CR_BAUD_MASK;
+		confr |= (baud_rate_val << ZYNQ_SPI_CR_BAUD_SHIFT);
+
+		priv->actual_speed_hz = plat->ref_clk / (2 << baud_rate_val);
+		plat->requested_speed_hz = speed_hz;
 	}
-	confr &= ~ZYNQ_SPI_CR_BAUD_MASK;
-	confr |= (baud_rate_val << ZYNQ_SPI_CR_BAUD_SHIFT);
 
 	writel(confr, &regs->cr);
-	priv->freq = speed;
 
-    debug("zynq_spi_set_speed: plat->frequency=%d, plat->speed_hz=%d, baud_rate_val=%d\n", plat->frequency, plat->speed_hz, baud_rate_val);
-
-	debug("zynq_spi_set_speed: regs=%p, speed=%d\n",
-	      priv->regs, priv->freq);
+	debug("zynq_spi_set_speed: regs=%p, actual_speed_hz=%u\n", priv->regs, priv->actual_speed_hz);
 
 	return 0;
 }
