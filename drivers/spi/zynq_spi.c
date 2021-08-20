@@ -13,8 +13,10 @@
 #include <time.h>
 #include <clk.h>
 #include <asm/io.h>
+#include <asm-generic/gpio.h>
 
 #define debug(...)      printf(__VA_ARGS__)
+#define MAX_CS_COUNT    (13)
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -66,6 +68,9 @@ struct zynq_spi_platdata {
 /* zynq spi priv */
 struct zynq_spi_priv {
 	struct zynq_spi_regs *regs;
+#ifdef CONFIG_DM_GPIO
+	struct gpio_desc cs_gpios[MAX_CS_COUNT];
+#endif
 	u8 cs;
 	u8 mode;
 	ulong last_transaction_us;	/* Time of last transaction end */
@@ -127,6 +132,27 @@ static int zynq_spi_probe(struct udevice *bus)
 	priv->regs = plat->regs;
 	priv->fifo_depth = ZYNQ_SPI_FIFO_DEPTH;
 
+#ifdef CONFIG_DM_GPIO
+	int i;
+
+	ret = gpio_request_list_by_name(bus, "cs-gpios", priv->cs_gpios,
+									ARRAY_SIZE(priv->cs_gpios), 0);
+	if (ret < 0) {
+		dev_err(dev, "failed to get cs-gpios for %s! Error: %d",
+				bus->name, ret);
+		return ret;
+	}
+
+	for (i = 0; i < ARRAY_SIZE(priv->cs_gpios); i++) {
+		if (!dm_gpio_is_valid(&priv->cs_gpios[i])) {
+			continue;
+		}
+
+		dm_gpio_set_dir_flags(&priv->cs_gpios[i],
+							  GPIOD_IS_OUT | GPIOD_ACTIVE_LOW);
+    }
+#endif
+
 	ret = clk_get_by_name(bus, "ref_clk", &clk);
 	if (ret < 0) {
 		dev_err(dev, "failed to get clock\n");
@@ -174,6 +200,16 @@ static void spi_cs_activate(struct udevice *dev)
 	}
 
 	clrbits_le32(&regs->cr, ZYNQ_SPI_CR_CS_MASK);
+
+#ifdef CONFIG_DM_GPIO
+	u32 cs = priv->cs;
+
+	if (!dm_gpio_is_valid(&priv->cs_gpios[cs])) {
+		return;
+    }
+
+	dm_gpio_set_value(&priv->cs_gpios[cs], 1);
+#else
 	cr = readl(&regs->cr);
 	/*
 	 * CS cal logic: CS[13:10]
@@ -183,6 +219,7 @@ static void spi_cs_activate(struct udevice *dev)
 	 */
 	cr |= (~(1 << priv->cs) << ZYNQ_SPI_CR_SS_SHIFT) & ZYNQ_SPI_CR_CS_MASK;
 	writel(cr, &regs->cr);
+#endif
 
 	if (plat->activate_delay_us)
 		udelay(plat->activate_delay_us);
@@ -196,6 +233,16 @@ static void spi_cs_deactivate(struct udevice *dev)
 	struct zynq_spi_regs *regs = priv->regs;
 
 	setbits_le32(&regs->cr, ZYNQ_SPI_CR_CS_MASK);
+
+#ifdef CONFIG_DM_GPIO
+	u32 cs = priv->cs;
+
+	if (!dm_gpio_is_valid(&priv->cs_gpios[cs])) {
+		return;
+    }
+
+	dm_gpio_set_value(&priv->cs_gpios[cs], 0);
+#endif
 
 	/* Remember time of this transaction so we can honour the bus delay */
 	if (plat->deactivate_delay_us)

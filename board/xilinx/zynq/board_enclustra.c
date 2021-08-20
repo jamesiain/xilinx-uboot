@@ -84,7 +84,7 @@ static void gecko_clock_init(void)
 {
     struct udevice *lmk04821;
 
-    if (uclass_get_device_by_name(UCLASS_CLK, "clock-generator@0", &lmk04821) < 0) {
+    if (uclass_get_device_by_name(UCLASS_CLK, "clock-generator@2", &lmk04821) < 0) {
         printf("Failed to find clock-generator@0 node. Check device tree\n");
     }
 }

@@ -47,12 +47,7 @@ static int config_lmk(struct udevice *dev)
     struct gecko_clk_priv *priv = dev_get_priv(dev);
     int                    index, claim_err;
     bool                   ld1, ld2;
-    struct gpio_desc       clk_gen_cs, clk_gen_ld1, clk_gen_ld2;
-
-    if (gpio_request_by_name(dev, "clk-gen-cs", 0, &clk_gen_cs, GPIOD_IS_OUT) < 0) {
-        printf("config_lmk: Failed to request GPIO by name: clk-gen-cs\n");
-        return -1;
-    }
+    struct gpio_desc       clk_gen_ld1, clk_gen_ld2;
 
     if (claim_err = dm_spi_claim_bus(dev)) {
         printf("config_lmk: Failed to claim SPI bus: %i\n", claim_err);
@@ -72,9 +67,7 @@ static int config_lmk(struct udevice *dev)
         fprintf(stderr, "config_lmk: reg[%.3i] = 0x%.8x\n", index, reg);
 #endif
 
-        dm_gpio_set_value(&clk_gen_cs, 0);
         dm_spi_xfer(dev, 24, dout, NULL, SPI_XFER_ONCE);
-        dm_gpio_set_value(&clk_gen_cs, 1);  // latch each write
     }
 
     dm_spi_release_bus(dev);
