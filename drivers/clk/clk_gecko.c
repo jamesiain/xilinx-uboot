@@ -47,7 +47,18 @@ static int config_lmk(struct udevice *dev)
     struct gecko_clk_priv *priv = dev_get_priv(dev);
     int                    index, claim_err;
     bool                   ld1, ld2;
-    struct gpio_desc       clk_gen_ld1, clk_gen_ld2;
+    struct gpio_desc       clk_gen_rst, clk_gen_ld1, clk_gen_ld2;
+
+    if (gpio_request_by_name(dev, "clk-gen-rst", 0, &clk_gen_rst, GPIOD_IS_OUT) < 0) {
+        printf("config_lmk: Failed to request GPIO by name: clk-gen-rst\n");
+        return -1;
+    }
+
+    dm_gpio_set_value(&clk_gen_rst, 1);
+    udelay(5);
+    dm_gpio_set_value(&clk_gen_rst, 0);
+
+    printf("config_lmk: Clock Reset = %d\n", dm_gpio_get_value(&clk_gen_rst));
 
     if (claim_err = dm_spi_claim_bus(dev)) {
         printf("config_lmk: Failed to claim SPI bus: %i\n", claim_err);
