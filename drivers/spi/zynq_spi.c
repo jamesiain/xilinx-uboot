@@ -15,7 +15,6 @@
 #include <asm/io.h>
 #include <asm-generic/gpio.h>
 
-#define debug(...)      printf(__VA_ARGS__)
 #define MAX_CS_COUNT    (13)
 
 DECLARE_GLOBAL_DATA_PTR;
